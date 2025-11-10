@@ -55,8 +55,8 @@ def plot_builds(builds: list["Build"]) -> None:
     max_hp = max(build.hp for build in builds)
 
     fig, axs = plt.subplots(1, 1, subplot_kw=dict(polar=True), figsize=(5 * num_builds, 5))
-    max_values = (max_atk, max_def, max_rev, max_hp)
-    # max_values = (1, 1, 1, 1)
+    # max_values = (max_atk, max_def, max_rev, max_hp)
+    max_values = (1, 1, 1, 1)
     for build in builds:
         color = ARCHETYPE_TO_COLOR.get(build.name, None)
         plot_build_radar(axs, build, max_values, color)

@@ -8,11 +8,12 @@ Author: OpenAI (ChatGPT, GPT-5)
 # Standard library imports
 import random
 import multiprocessing as mp
+import sys
 from dataclasses import dataclass
 from typing import Optional
 import matplotlib.pyplot as plt
 
-from build_plotter import plot_builds
+from build_plotter import ARCHETYPE_TO_COLOR, plot_builds
 
 # ------------------------------------------------------------
 # Data structures
@@ -95,8 +96,20 @@ def simulate_battle(p1: Build, p2: Build, max_rounds: int = 100) -> BattleResult
 # RPS cycle search
 # ------------------------------------------------------------
 
-def test_rps_cycle(o: Build, t: Build, b: Build, min_rounds: int = 4, max_rounds: int = 6) -> bool:
-    """Return True if (O > T, T > B, B > O) with each win lasting 4–6 rounds."""
+def proper_strategy_names(o: Build, b: Build, t: Build) -> bool:
+    """
+    Ensure that the build names correspond to their intended strategies.
+    """
+    if not (o.atk > b.atk and b.atk > t.atk):
+        return False
+    if not (t.defense > b.defense and b.defense > o.defense):
+        return False
+    if not (o.hp < b.hp and b.hp < t.hp):
+        return False
+    return True
+
+def test_rps_cycle(o: Build, b: Build, t: Build, min_rounds: int = 3, max_rounds: int = 10) -> bool:
+    """Return True if (O > T, T > B, B > O) with each win lasting 3–10 rounds."""
     r1, hp_log_1 = simulate_battle(o, t)
     r2, hp_log_2 = simulate_battle(t, b)
     r3, hp_log_3 = simulate_battle(b, o)
@@ -112,8 +125,11 @@ def _worker(args: tuple[tuple[int, int, int], tuple[int, int, int], tuple[int, i
     ofns = Build("Offense", *stats_o)
     tank = Build("Tank", *stats_t)
     bal = Build("Balanced", *stats_b)
-    if test_rps_cycle(ofns, tank, bal):
-        return (ofns, tank, bal)
+    # ensure names correspond to strategies:
+    if not proper_strategy_names(ofns, bal, tank):
+        return None
+    if test_rps_cycle(ofns, bal, tank):
+        return (ofns, bal, tank)
     return None
 
 def search_parameters(
@@ -147,8 +163,8 @@ def search_parameters(
 
     args_list = [
         (random_build("Offense", atk_ranges[0], def_ranges[0], rev_ranges[0], hp_ranges[0]),
-         random_build("Tank", atk_ranges[1], def_ranges[1], rev_ranges[1], hp_ranges[1]),
-         random_build("Balanced", atk_ranges[2], def_ranges[2], rev_ranges[2], hp_ranges[2]))
+         random_build("Balanced", atk_ranges[1], def_ranges[1], rev_ranges[1], hp_ranges[1]),
+         random_build("Tank", atk_ranges[2], def_ranges[2], rev_ranges[2], hp_ranges[2]))
         for _ in range(num_trials)
     ]
 
@@ -167,26 +183,28 @@ def default_stats():
         atk=6,
         defense=1,
         revenge=1,
-        hp=16
+        hp=14
     )
     bal = Build(
         "Balanced",
         atk=4,
         defense=2,
         revenge=2,
-        hp=20
+        hp=15
     )
     tank = Build(
         "Tank",
         atk=1,
         defense=3,
         revenge=3,
-        hp=23
+        hp=16
     )
     return ofns, bal, tank
 
 def test_default_battle(plot_hp_logs: bool = True):
     ofns, bal, tank = default_stats()
+    # plot_builds([ofns, bal, tank])
+    print(f"Default builds are valid: {proper_strategy_names(ofns, bal, tank)}")
     res1, hp_log_1 = simulate_battle(ofns, tank)
     res2, hp_log_2 = simulate_battle(tank, bal)
     res3, hp_log_3 = simulate_battle(bal, ofns)
@@ -194,6 +212,7 @@ def test_default_battle(plot_hp_logs: bool = True):
     print(f"Offense vs Tank:     {res1}")
     print(f"Tank vs Balanced:    {res2}")
     print(f"Balanced vs Offense: {res3}")
+    print(f"Form RPS cycle: {test_rps_cycle(ofns, bal, tank)}")
     if plot_hp_logs:
         # 3 subplots, one for each battle
         fig, axs = plt.subplots(3, 1, figsize=(5, 8))
@@ -204,11 +223,11 @@ def test_default_battle(plot_hp_logs: bool = True):
             # recover player names
             player1, player2 = title.split(" vs ")
             # add avg. damage per turn to labels
-            label1 = f"{player1} (Avg. DMG: {((hp_log[0][0] - hp_log[-1][0]) / len(hp_log)):.2f})"
-            label2 = f"{player2} (Avg. DMG: {((hp_log[0][1] - hp_log[-1][1]) / len(hp_log)):.2f})"
+            label1 = f"{player1} (Avg. DMG: {((hp_log[0][1] - hp_log[-1][1]) / len(hp_log)):.2f})"
+            label2 = f"{player2} (Avg. DMG: {((hp_log[0][0] - hp_log[-1][0]) / len(hp_log)):.2f})"
             hp1_log, hp2_log = zip(*hp_log)
-            ax.plot(range(len(hp1_log)), hp1_log, label=label1)
-            ax.plot(range(len(hp2_log)), hp2_log, label=label2)
+            ax.plot(range(len(hp1_log)), hp1_log, label=label1, color=ARCHETYPE_TO_COLOR.get(player1, None))
+            ax.plot(range(len(hp2_log)), hp2_log, label=label2, color=ARCHETYPE_TO_COLOR.get(player2, None))
             ax.plot((0, len(hp1_log)), (0, 0), 'k--', linewidth=0.8)  # Zero HP line
             ax.grid(color="#eee")
             ax.set_title(title)
@@ -220,13 +239,13 @@ def test_default_battle(plot_hp_logs: bool = True):
 
 if __name__ == "__main__":
     # test_default_battle()
-    
+    # sys.exit()
     # Stat ranges for each archetype (Offense, Balanced, Tank)
-    atk_ranges = ((3, 10), (2, 9), (1, 8))
-    def_ranges = ((1, 8), (2, 9), (3, 10))
+    atk_ranges = ((3, 9), (2, 7), (1, 5))
+    def_ranges = ((1, 5), (2, 8), (3, 10))
     rev_ranges = ((1, 10), (1, 10), (1, 10))
-    hp_ranges = ((5, 25), (5, 25), (5, 25))
-    n_trials = 30000
+    hp_ranges = ((6, 15), (8, 20), (8, 25))
+    n_trials = 10_000_000
 
     print("Searching for RPS cycles... (this may take some seconds)")
     found = search_parameters(
@@ -234,17 +253,17 @@ if __name__ == "__main__":
         def_ranges,
         rev_ranges,
         hp_ranges,
-        processes=mp.cpu_count(),
+        processes=mp.cpu_count()*2,
         num_trials=n_trials
     )
     # save found to file
     with open("found_rps_cycles.txt", "w") as file:
-        for o, t, b in found:
-            file.write(f"Offense: {o}\n")
-            file.write(f"Tank:    {t}\n")
-            file.write(f"Balanced:{b}\n")
+        for ofns, bal, tank in found:
+            file.write(f"Offense: {ofns}\n")
+            file.write(f"Balanced:{bal}\n")
+            file.write(f"Tank:    {tank}\n")
             file.write("\n")
 
     print(f"Found {len(found)} RPS cycles. Example:")
-    for o, t, b in found[:5]:
-        plot_builds([o, t, b])
+    for ofns, bal, tank in found[:20]:
+        plot_builds([ofns, bal, tank])
