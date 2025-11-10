@@ -1,0 +1,96 @@
+Offense: Offense(ATK: 7, DEF: 7, REV: 2, HP: 24)
+Tank:    Tank(ATK: 2, DEF: 3, REV: 7, HP: 19)
+Balanced:Balanced(ATK: 3, DEF: 10, REV: 4, HP: 24)
+
+Offense: Offense(ATK: 6, DEF: 4, REV: 5, HP: 23)
+Tank:    Tank(ATK: 4, DEF: 8, REV: 4, HP: 21)
+Balanced:Balanced(ATK: 2, DEF: 6, REV: 6, HP: 16)
+
+Offense: Offense(ATK: 6, DEF: 8, REV: 4, HP: 23)
+Tank:    Tank(ATK: 2, DEF: 5, REV: 5, HP: 22)
+Balanced:Balanced(ATK: 2, DEF: 10, REV: 7, HP: 19)
+
+Offense: Offense(ATK: 7, DEF: 1, REV: 1, HP: 22)
+Tank:    Tank(ATK: 3, DEF: 2, REV: 4, HP: 24)
+Balanced:Balanced(ATK: 2, DEF: 10, REV: 5, HP: 16)
+
+Offense: Offense(ATK: 7, DEF: 3, REV: 2, HP: 24)
+Tank:    Tank(ATK: 5, DEF: 3, REV: 5, HP: 22)
+Balanced:Balanced(ATK: 1, DEF: 8, REV: 5, HP: 17)
+
+Offense: Offense(ATK: 6, DEF: 4, REV: 3, HP: 23)
+Tank:    Tank(ATK: 4, DEF: 4, REV: 4, HP: 19)
+Balanced:Balanced(ATK: 2, DEF: 7, REV: 4, HP: 17)
+
+Offense: Offense(ATK: 4, DEF: 6, REV: 6, HP: 24)
+Tank:    Tank(ATK: 5, DEF: 8, REV: 6, HP: 22)
+Balanced:Balanced(ATK: 5, DEF: 9, REV: 7, HP: 23)
+
+Offense: Offense(ATK: 8, DEF: 7, REV: 4, HP: 25)
+Tank:    Tank(ATK: 6, DEF: 7, REV: 7, HP: 20)
+Balanced:Balanced(ATK: 3, DEF: 7, REV: 6, HP: 22)
+
+Offense: Offense(ATK: 10, DEF: 7, REV: 4, HP: 23)
+Tank:    Tank(ATK: 6, DEF: 7, REV: 5, HP: 24)
+Balanced:Balanced(ATK: 6, DEF: 10, REV: 4, HP: 23)
+
+Offense: Offense(ATK: 6, DEF: 4, REV: 1, HP: 20)
+Tank:    Tank(ATK: 3, DEF: 2, REV: 4, HP: 25)
+Balanced:Balanced(ATK: 1, DEF: 5, REV: 4, HP: 24)
+
+Offense: Offense(ATK: 4, DEF: 8, REV: 6, HP: 22)
+Tank:    Tank(ATK: 3, DEF: 8, REV: 6, HP: 22)
+Balanced:Balanced(ATK: 4, DEF: 8, REV: 6, HP: 20)
+
+Offense: Offense(ATK: 7, DEF: 2, REV: 1, HP: 25)
+Tank:    Tank(ATK: 3, DEF: 5, REV: 2, HP: 18)
+Balanced:Balanced(ATK: 5, DEF: 9, REV: 3, HP: 11)
+
+Offense: Offense(ATK: 9, DEF: 8, REV: 2, HP: 20)
+Tank:    Tank(ATK: 6, DEF: 6, REV: 4, HP: 20)
+Balanced:Balanced(ATK: 7, DEF: 10, REV: 4, HP: 16)
+
+Offense: Offense(ATK: 8, DEF: 6, REV: 1, HP: 15)
+Tank:    Tank(ATK: 8, DEF: 4, REV: 2, HP: 18)
+Balanced:Balanced(ATK: 6, DEF: 7, REV: 3, HP: 11)
+
+Offense: Offense(ATK: 5, DEF: 3, REV: 4, HP: 23)
+Tank:    Tank(ATK: 4, DEF: 6, REV: 6, HP: 13)
+Balanced:Balanced(ATK: 7, DEF: 9, REV: 1, HP: 20)
+
+Offense: Offense(ATK: 3, DEF: 8, REV: 4, HP: 12)
+Tank:    Tank(ATK: 7, DEF: 4, REV: 1, HP: 20)
+Balanced:Balanced(ATK: 2, DEF: 4, REV: 3, HP: 18)
+
+Offense: Offense(ATK: 5, DEF: 8, REV: 5, HP: 22)
+Tank:    Tank(ATK: 7, DEF: 4, REV: 7, HP: 24)
+Balanced:Balanced(ATK: 2, DEF: 8, REV: 7, HP: 24)
+
+Offense: Offense(ATK: 9, DEF: 8, REV: 3, HP: 21)
+Tank:    Tank(ATK: 9, DEF: 5, REV: 4, HP: 24)
+Balanced:Balanced(ATK: 3, DEF: 9, REV: 5, HP: 19)
+
+Offense: Offense(ATK: 5, DEF: 5, REV: 2, HP: 19)
+Tank:    Tank(ATK: 5, DEF: 3, REV: 3, HP: 13)
+Balanced:Balanced(ATK: 3, DEF: 7, REV: 4, HP: 10)
+
+Offense: Offense(ATK: 5, DEF: 7, REV: 4, HP: 18)
+Tank:    Tank(ATK: 8, DEF: 9, REV: 2, HP: 18)
+Balanced:Balanced(ATK: 4, DEF: 6, REV: 3, HP: 23)
+
+Offense: Offense(ATK: 4, DEF: 6, REV: 4, HP: 13)
+Tank:    Tank(ATK: 6, DEF: 8, REV: 4, HP: 14)
+Balanced:Balanced(ATK: 8, DEF: 9, REV: 1, HP: 20)
+
+Offense: Offense(ATK: 7, DEF: 6, REV: 1, HP: 17)
+Tank:    Tank(ATK: 3, DEF: 4, REV: 3, HP: 21)
+Balanced:Balanced(ATK: 3, DEF: 6, REV: 4, HP: 10)
+
+Offense: Offense(ATK: 5, DEF: 5, REV: 2, HP: 19)
+Tank:    Tank(ATK: 2, DEF: 3, REV: 4, HP: 20)
+Balanced:Balanced(ATK: 3, DEF: 4, REV: 5, HP: 15)
+
+Offense: Offense(ATK: 9, DEF: 6, REV: 2, HP: 25)
+Tank:    Tank(ATK: 6, DEF: 6, REV: 3, HP: 25)
+Balanced:Balanced(ATK: 6, DEF: 10, REV: 5, HP: 14)
+

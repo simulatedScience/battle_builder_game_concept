@@ -6,12 +6,13 @@ Author: OpenAI (ChatGPT, GPT-5)
 """
 
 # Standard library imports
-import itertools
+import random
 import multiprocessing as mp
 from dataclasses import dataclass
-from typing import Tuple, Optional
-
+from typing import Optional
 import matplotlib.pyplot as plt
+
+from build_plotter import plot_builds
 
 # ------------------------------------------------------------
 # Data structures
@@ -25,6 +26,9 @@ class Build:
     defense: int
     revenge: int
     hp: int
+    def __str__(self):
+        return (f"{self.name}(ATK: {self.atk}, DEF: {self.defense}, "
+                f"REV: {self.revenge}, HP: {self.hp})")
 
 @dataclass
 class BattleResult:
@@ -102,7 +106,7 @@ def test_rps_cycle(o: Build, t: Build, b: Build, min_rounds: int = 4, max_rounds
 
     return all(min_rounds <= r.rounds <= max_rounds for r in (r1, r2, r3))
 
-def _worker(args: Tuple[Tuple[int, int, int], Tuple[int, int, int], Tuple[int, int, int]]) -> Optional[Tuple[Build, Build, Build]]:
+def _worker(args: tuple[tuple[int, int, int], tuple[int, int, int], tuple[int, int, int]]) -> Optional[tuple[Build, Build, Build]]:
     """Worker function for parallel RPS cycle testing."""
     stats_o, stats_t, stats_b = args
     ofns = Build("Offense", *stats_o)
@@ -113,14 +117,15 @@ def _worker(args: Tuple[Tuple[int, int, int], Tuple[int, int, int], Tuple[int, i
     return None
 
 def search_parameters(
-    atk_range: range,
-    def_range: range,
-    rev_range: range,
-    hp_range: range,
-    processes: int = 4,
-) -> list[Tuple[Build, Build, Build]]:
+    atk_ranges: list[tuple[int, int]],
+    def_ranges: list[tuple[int, int]],
+    rev_ranges: list[tuple[int, int]],
+    hp_ranges: list[tuple[int, int]],
+    processes: int = 6,
+    num_trials: int = 10000,
+) -> list[tuple[Build, Build, Build]]:
     """
-    Enumerate parameter combinations and find RPS cycles satisfying balance criteria.
+    Random search for RPS cycles over given stat ranges using parallel processing.
 
     Args:
         atk_range (range): Range of attack values.
@@ -130,17 +135,25 @@ def search_parameters(
         processes (int): Number of parallel worker processes.
 
     Returns:
-        list[Tuple[Build, Build, Build]]: All (O, T, B) triples forming an RPS cycle.
+        list[tuple[Build, Build, Build]]: All (O, T, B) triples forming an RPS cycle.
     """
-    # Cartesian product search space
-    all_combos = itertools.product(
-        itertools.product(atk_range, def_range, rev_range, hp_range),
-        itertools.product(atk_range, def_range, rev_range, hp_range),
-        itertools.product(atk_range, def_range, rev_range, hp_range)
-    )
+    def random_build(name, atk_range, def_range, rev_range, hp_range) -> Build:
+        return (
+            random.randint(*atk_range),
+            random.randint(*def_range),
+            random.randint(*rev_range),
+            random.randint(*hp_range)
+        )
+
+    args_list = [
+        (random_build("Offense", atk_ranges[0], def_ranges[0], rev_ranges[0], hp_ranges[0]),
+         random_build("Tank", atk_ranges[1], def_ranges[1], rev_ranges[1], hp_ranges[1]),
+         random_build("Balanced", atk_ranges[2], def_ranges[2], rev_ranges[2], hp_ranges[2]))
+        for _ in range(num_trials)
+    ]
 
     with mp.Pool(processes=processes) as pool:
-        results = pool.map(_worker, all_combos)
+        results = pool.map(_worker, args_list)
 
     return [res for res in results if res is not None]
 
@@ -206,20 +219,32 @@ def test_default_battle(plot_hp_logs: bool = True):
         plt.show()
 
 if __name__ == "__main__":
-    test_default_battle()
+    # test_default_battle()
     
-    # atk_range = range(1, 7, 2)   # 1–6
-    # def_range = range(1, 5, 2)   # 1–4
-    # rev_range = range(1, 5, 2)   # 1–4
-    # hp_range = range(5, 21, 5)  # 5,10,15,20
-    # # total combinations: 6*4*4*4 = 384 per archetype, 384^3 = 56,623,104 total
+    # Stat ranges for each archetype (Offense, Balanced, Tank)
+    atk_ranges = ((3, 10), (2, 9), (1, 8))
+    def_ranges = ((1, 8), (2, 9), (3, 10))
+    rev_ranges = ((1, 10), (1, 10), (1, 10))
+    hp_ranges = ((5, 25), (5, 25), (5, 25))
+    n_trials = 30000
 
-    # print("Searching for RPS cycles... (this may take some seconds)")
-    # found = search_parameters(atk_range, def_range, hp_range, rev_range, processes=mp.cpu_count())
+    print("Searching for RPS cycles... (this may take some seconds)")
+    found = search_parameters(
+        atk_ranges,
+        def_ranges,
+        rev_ranges,
+        hp_ranges,
+        processes=mp.cpu_count(),
+        num_trials=n_trials
+    )
+    # save found to file
+    with open("found_rps_cycles.txt", "w") as file:
+        for o, t, b in found:
+            file.write(f"Offense: {o}\n")
+            file.write(f"Tank:    {t}\n")
+            file.write(f"Balanced:{b}\n")
+            file.write("\n")
 
-    # print(f"Found {len(found)} RPS cycles. Example:")
-    # if found:
-    #     o, t, b = found[0]
-    #     print(o)
-    #     print(t)
-    #     print(b)
+    print(f"Found {len(found)} RPS cycles. Example:")
+    for o, t, b in found[:5]:
+        plot_builds([o, t, b])
