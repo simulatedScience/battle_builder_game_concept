@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import Optional
 import numpy as np
 from scipy.optimize import differential_evolution
+import random                  # added for tie-breaking
 
 # ------------------------------------------------------------
 # Constants
@@ -19,7 +20,8 @@ STAT_RANGES = {
     'atk': (1., 10.),
     'defense': (1., 10.),
     'revenge': (-1., 1.),
-    'hp': (5, 25)
+    'hp': (5, 25),
+    'spd': (1., 10.)   # new speed stat
 }
 
 # ------------------------------------------------------------
@@ -34,10 +36,11 @@ class Build:
     defense: float
     revenge: float
     hp: int
+    spd: float                     # added speed
     
     def __str__(self):
         return (f"{self.name}(ATK: {self.atk}, DEF: {self.defense}, "
-                f"REV: {self.revenge}, HP: {self.hp})")
+                f"REV: {self.revenge}, HP: {self.hp}, SPD: {self.spd})")
 
 @dataclass
 class BattleResult:
@@ -58,44 +61,62 @@ def simulate_battle(p1: Build, p2: Build, max_rounds: int = 100) -> tuple[Battle
     """
     Simulate a PvP battle between two builds until one dies or max_rounds is reached.
 
-    Rules:
-    - Both attack simultaneously each round.
-    - If a defender survives the primary attack, they deal immediate revenge (flat damage).
-    - No speed or turn order.
-
-    Args:
-        p1 (Build): Player 1's build.
-        p2 (Build): Player 2's build.
-        max_rounds (int): Upper limit to avoid infinite loops.
-
-    Returns:
-        tuple[BattleResult, list[tuple[int, int]]]: The outcome and HP log.
+    Order resolution:
+    - Faster player attacks first. If speeds tie, first attacker is chosen at random.
+    - Sequence for the faster player (A) vs slower (B):
+        1) A primary hits B
+        2) If B survived, B deals revenge to A
+        3) B primary hits A
+        4) If A survived, A deals revenge to B
+    The battle can end after any of these steps.
     """
-    hp1, hp2 = p1.hp, p2.hp
-    hp_log = [(hp1, hp2)]  # Log HP after each round
+    hp = [float(p1.hp), float(p2.hp)]
+    hp_log: list[tuple[float, float]] = [(hp[0], hp[1])]
+    builds = [p1, p2]
+
     for round_idx in range(1, max_rounds + 1):
-        # Primary attacks (simultaneous)
-        dmg_1_to_2 = max(0, p1.atk - p2.defense)
-        dmg_2_to_1 = max(0, p2.atk - p1.defense)
+        # Determine order by speed; tie => random
+        if p1.spd > p2.spd:
+            order = [0, 1]
+        elif p2.spd > p1.spd:
+            order = [1, 0]
+        else:
+            order = [0, 1] if random.random() < 0.5 else [1, 0]
 
-        hp1 -= dmg_2_to_1
-        hp2 -= dmg_1_to_2
+        a, b = order  # a = index of first attacker, b = index of second
 
-        # Revenge (only if defender survived primary hit)
-        if hp1 > 0:
-            hp2 -= p1.revenge
-        if hp2 > 0:
-            hp1 -= p2.revenge
+        # Step 1: a primary hits b
+        dmg_a_to_b = max(0.0, builds[a].atk - builds[b].defense)
+        hp[b] -= dmg_a_to_b
+        if hp[b] <= 0:
+            winner = builds[a].name
+            hp_log.append((hp[0], hp[1]))
+            return BattleResult(winner=winner, rounds=round_idx), hp_log
 
-        hp_log.append((hp1, hp2))
+        # Step 2: b deals revenge to a (if b survived primary)
+        hp[a] -= builds[b].revenge
+        if hp[a] <= 0:
+            winner = builds[b].name
+            hp_log.append((hp[0], hp[1]))
+            return BattleResult(winner=winner, rounds=round_idx), hp_log
 
-        # Check end of battle
-        if hp1 <= 0 and hp2 <= 0:
-            return BattleResult(winner=None, rounds=round_idx), hp_log  # Draw
-        elif hp2 <= 0:
-            return BattleResult(winner=p1.name, rounds=round_idx), hp_log
-        elif hp1 <= 0:
-            return BattleResult(winner=p2.name, rounds=round_idx), hp_log
+        # Step 3: b primary hits a
+        dmg_b_to_a = max(0.0, builds[b].atk - builds[a].defense)
+        hp[a] -= dmg_b_to_a
+        if hp[a] <= 0:
+            winner = builds[b].name
+            hp_log.append((hp[0], hp[1]))
+            return BattleResult(winner=winner, rounds=round_idx), hp_log
+
+        # Step 4: a deals revenge to b (if a survived second primary)
+        hp[b] -= builds[a].revenge
+        if hp[b] <= 0:
+            winner = builds[a].name
+            hp_log.append((hp[0], hp[1]))
+            return BattleResult(winner=winner, rounds=round_idx), hp_log
+
+        # commit state and continue
+        hp_log.append((hp[0], hp[1]))
 
     return BattleResult(winner=None, rounds=max_rounds), hp_log
 
@@ -131,9 +152,9 @@ def _penalize_advantage(advantage: float, min_adv: float = 0.5, max_adv: float =
 def proper_strategy_names(o: Build, b: Build, t: Build) -> bool:
     """
     Ensure that the build names correspond to their intended strategies.
-    O = Offense (high ATK, low DEF, low HP)
-    B = Balanced (medium ATK, medium DEF, medium HP)
-    T = Tank (low ATK, high DEF, high HP)
+    O = Offense (high ATK, low DEF, low HP, high SPD)
+    B = Balanced (medium everything)
+    T = Tank (low ATK, high DEF, high HP, low SPD)
     """
     stat_order = [
         (o.atk > b.atk and b.atk > t.atk),                      # Attack: O > B > T
@@ -209,18 +230,20 @@ def fitness(offense: Build, balanced: Build, tank: Build, min_rounds: int = 3, m
 
 def _fitness_wrapper(params: np.ndarray) -> float:
     """
-    Wrapper for fitness function that accepts a flat array of 12 parameters.
+    Wrapper for fitness function that accepts a flat array of 15 parameters.
     
     Args:
-        params: Array of [atk_o, def_o, rev_o, hp_o, atk_b, def_b, rev_b, hp_b, atk_t, def_t, rev_t, hp_t]
+        params: Array of [atk_o, def_o, rev_o, hp_o, spd_o,
+                         atk_b, def_b, rev_b, hp_b, spd_b,
+                         atk_t, def_t, rev_t, hp_t, spd_t]
     
     Returns:
         Fitness score (lower is better)
     """
     # Round HP values to integers during fitness evaluation
-    offense = Build("Offense", params[0], params[1], params[2], int(round(params[3])))
-    balanced = Build("Balanced", params[4], params[5], params[6], int(round(params[7])))
-    tank = Build("Tank", params[8], params[9], params[10], int(round(params[11])))
+    offense = Build("Offense", params[0], params[1], params[2], int(round(params[3])), params[4])
+    balanced = Build("Balanced", params[5], params[6], params[7], int(round(params[8])), params[9])
+    tank = Build("Tank", params[10], params[11], params[12], int(round(params[13])), params[14])
     
     return fitness(offense, balanced, tank)
 
@@ -229,6 +252,7 @@ def optimize_builds(
     def_ranges: list[tuple[int, int]],
     rev_ranges: list[tuple[int, int]],
     hp_ranges: list[tuple[int, int]],
+    spd_ranges: list[tuple[int, int]],   # new parameter
     maxiter: int = 100,
     popsize: int = 15,
     workers: int = -1, # Use all available CPUs
@@ -252,21 +276,25 @@ def optimize_builds(
     Returns:
         Tuple of optimized (Offense, Balanced, Tank) builds
     """
-    # Construct bounds: [atk_o, def_o, rev_o, hp_o, atk_b, def_b, rev_b, hp_b, atk_t, def_t, rev_t, hp_t]
+    # Construct bounds: [atk_o, def_o, rev_o, hp_o, spd_o, atk_b, def_b, rev_b, hp_b, spd_b, atk_t, def_t, rev_t, hp_t, spd_t]
     bounds: list[tuple[float, float]] = [
-        atk_ranges[0], def_ranges[0], rev_ranges[0], hp_ranges[0],
-        atk_ranges[1], def_ranges[1], rev_ranges[1], hp_ranges[1],
-        atk_ranges[2], def_ranges[2], rev_ranges[2], hp_ranges[2],
+        atk_ranges[0], def_ranges[0], rev_ranges[0], hp_ranges[0], spd_ranges[0],
+        atk_ranges[1], def_ranges[1], rev_ranges[1], hp_ranges[1], spd_ranges[1],
+        atk_ranges[2], def_ranges[2], rev_ranges[2], hp_ranges[2], spd_ranges[2],
     ]
     
+    # Ensure n_params/pop_size available regardless of initial_builds
+    n_params: int = len(bounds)
+    pop_size: int = max(5, popsize * n_params)
+
     # Prepare initial population if provided
     init_population: str = 'latinhypercube'  # Default
     if initial_builds is not None:
         offense, balanced, tank = initial_builds
         init_vector = np.array([
-            offense.atk, offense.defense, offense.revenge, float(offense.hp),
-            balanced.atk, balanced.defense, balanced.revenge, float(balanced.hp),
-            tank.atk, tank.defense, tank.revenge, float(tank.hp)
+            offense.atk, offense.defense, offense.revenge, float(offense.hp), offense.spd,
+            balanced.atk, balanced.defense, balanced.revenge, float(balanced.hp), balanced.spd,
+            tank.atk, tank.defense, tank.revenge, float(tank.hp), tank.spd
         ], dtype=float)
         
         # # Clip to bounds
@@ -275,15 +303,10 @@ def optimize_builds(
         # init_vector = np.clip(init_vector, lower_bounds, upper_bounds)
         
         print(f"Using initial builds as seed:")
-        print(f"  Offense:  ATK={init_vector[0]:.2f}, DEF={init_vector[1]:.2f}, REV={init_vector[2]:.2f}, HP={int(init_vector[3])}")
-        print(f"  Balanced: ATK={init_vector[4]:.2f}, DEF={init_vector[5]:.2f}, REV={init_vector[6]:.2f}, HP={int(init_vector[7])}")
-        print(f"  Tank:     ATK={init_vector[8]:.2f}, DEF={init_vector[9]:.2f}, REV={init_vector[10]:.2f}, HP={int(init_vector[11])}")
+        print(f"  Offense:  ATK={init_vector[0]:.2f}, DEF={init_vector[1]:.2f}, REV={init_vector[2]:.2f}, HP={int(init_vector[3])}, SPD={init_vector[4]:.2f}")
+        print(f"  Balanced: ATK={init_vector[5]:.2f}, DEF={init_vector[6]:.2f}, REV={init_vector[7]:.2f}, HP={int(init_vector[8])}, SPD={init_vector[9]:.2f}")
+        print(f"  Tank:     ATK={init_vector[10]:.2f}, DEF={init_vector[11]:.2f}, REV={init_vector[12]:.2f}, HP={int(init_vector[13])}, SPD={init_vector[14]:.2f}")
         print(f"  Initial fitness: {_fitness_wrapper(init_vector):.2f}")
-        
-        # Generate a full population with the initial build as the first individual
-        # Population size must be at least 5
-        n_params: int = len(bounds)
-        pop_size: int = max(5, popsize * n_params)
         
         # Set seed for reproducibility
         if seed is not None:
@@ -302,7 +325,7 @@ def optimize_builds(
         
         print(f"  Generated population of size {pop_size}")
     
-    print(f"\nOptimizing 12 parameters with differential evolution...")
+    print(f"\nOptimizing {n_params} parameters with differential evolution...")
     print(f"Effective population size: {pop_size}, Max iterations: {maxiter}")
 
     def callback(xk, convergence):
@@ -327,13 +350,12 @@ def optimize_builds(
         disp=True,
         callback=callback,
         init=init_population if initial_builds is not None else 'latinhypercube'
-        # init='latinhypercube'
     )
 
     # Extract optimized builds (keep float precision; HP displayed as int)
-    offense = Build("Offense", result.x[0], result.x[1], result.x[2], int(round(result.x[3])))
-    balanced = Build("Balanced", result.x[4], result.x[5], result.x[6], int(round(result.x[7])))
-    tank = Build("Tank", result.x[8], result.x[9], result.x[10], int(round(result.x[11])))
+    offense = Build("Offense", result.x[0], result.x[1], result.x[2], int(round(result.x[3])), result.x[4])
+    balanced = Build("Balanced", result.x[5], result.x[6], result.x[7], int(round(result.x[8])), result.x[9])
+    tank = Build("Tank", result.x[10], result.x[11], result.x[12], int(round(result.x[13])), result.x[14])
 
     print(f"\nOptimization complete!")
     print(f"Final fitness score: {result.fun:.4f}")

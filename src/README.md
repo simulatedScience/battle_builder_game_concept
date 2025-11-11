@@ -19,7 +19,8 @@ Later, ATK, DEF and REV may be described by a normal distribution via *mean* and
 
 ## Strategies
 We want to balance three strategies:
-- Offense: High ATK, low DEF
-- Defense: High DEF, low ATK
-- Balanced: Moderate ATK and DEF
-- 
+- Offense: High ATK, low DEF, low HP, low REV
+- Balanced: Moderate ATK, DEF, HP, REV
+- Defense: High DEF, low ATK, high HP, high REV
+
+SPD is independent of these strategies to increase strategy diversity. For example a fast tank may have different strengths and weaknesses than a slow tank. This will need balancing later, once specific cards are created.

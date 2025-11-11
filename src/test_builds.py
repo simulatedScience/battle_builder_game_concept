@@ -8,38 +8,38 @@ from build_plotter import ARCHETYPE_TO_COLOR, plot_builds
 
 def default_stats() -> tuple[Build, Build, Build]:
     """Return default builds for Offense, Balanced, and Tank archetypes."""
-    offense  = Build("Offense",  atk=6, defense=1, revenge=.8, hp=13)
-    balanced = Build("Balanced", atk=4, defense=2, revenge=1.6, hp=15)
-    tank     = Build("Tank",     atk=1, defense=3, revenge=2.7, hp=16)
+    offense  = Build("Offense",  atk=6, defense=1, revenge=.8, hp=13, spd=8)
+    balanced = Build("Balanced", atk=4, defense=2, revenge=1.6, hp=15, spd=5)
+    tank     = Build("Tank",     atk=1, defense=3, revenge=2.7, hp=16, spd=2)
     return offense, balanced, tank
 
 def default_stats2() -> tuple[Build, Build, Build]:
     """Return default builds for Offense, Balanced, and Tank archetypes."""
-    offense  = Build("Offense",  atk=6, defense=3.5, revenge=0., hp=7)
-    balanced = Build("Balanced", atk=5, defense=4, revenge=0.5, hp=9)
-    tank     = Build("Tank",     atk=3.5, defense=4.5, revenge=.9, hp=11)
+    offense  = Build("Offense",  atk=6, defense=3.5, revenge=0., hp=7, spd=8)
+    balanced = Build("Balanced", atk=5, defense=4, revenge=0.5, hp=9, spd=7)
+    tank     = Build("Tank",     atk=3.5, defense=4.5, revenge=6/7, hp=11, spd=7)
     return offense, balanced, tank
 
 def stats_from_matrix(scale_factor: float) -> tuple[Build, Build, Build]:
     weight_matrix = np.array([
-        [6., 3.5, 0., 7],
-        [5., 4., 0.5, 9.],
-        [3.5, 4.5, .9, 11.]
+        [6., 3.5, 0., 7., 7.],  # Offense: atk, def, rev, hp, spd
+        [5., 4., 0.5, 9., 7.],  # Balanced
+        [3.5, 4.5, .9, 11., 7.] # Tank
     ])
     scaled_matrix = weight_matrix * scale_factor
     # round
     for row in scaled_matrix:
         row[3] = int(round(row[3]))  # Round HP to nearest integer
-        for i in range(3):
+        for i in [0,1,2,4]:
             row[i] = round(row[i], 2)  # Round other stats to 2 decimal places
-    offense = Build("Offense", atk=scaled_matrix[0,0], defense=scaled_matrix[0,1], revenge=scaled_matrix[0,2], hp=scaled_matrix[0,3])
-    balanced = Build("Balanced", atk=scaled_matrix[1,0], defense=scaled_matrix[1,1], revenge=scaled_matrix[1,2], hp=scaled_matrix[1,3])
-    tank = Build("Tank", atk=scaled_matrix[2,0], defense=scaled_matrix[2,1], revenge=scaled_matrix[2,2], hp=scaled_matrix[2,3])
+    offense = Build("Offense", atk=scaled_matrix[0,0], defense=scaled_matrix[0,1], revenge=scaled_matrix[0,2], hp=int(scaled_matrix[0,3]), spd=scaled_matrix[0,4])
+    balanced = Build("Balanced", atk=scaled_matrix[1,0], defense=scaled_matrix[1,1], revenge=scaled_matrix[1,2], hp=int(scaled_matrix[1,3]), spd=scaled_matrix[1,4])
+    tank = Build("Tank", atk=scaled_matrix[2,0], defense=scaled_matrix[2,1], revenge=scaled_matrix[2,2], hp=int(scaled_matrix[2,3]), spd=scaled_matrix[2,4])
     # print new builds
     print(f"Builds with scale factor {scale_factor}:")
-    print(f"Offense: {offense}")
-    print(f"Balanced: {balanced}")
-    print(f"Tank: {tank}")
+    print(f"{offense}")
+    print(f"{balanced}")
+    print(f"{tank}")
     return offense, balanced, tank
 
 def plot_battle(ax: plt.Axes, title: str, hp_log: list[tuple[int, int]]):
@@ -68,7 +68,7 @@ def plot_battle(ax: plt.Axes, title: str, hp_log: list[tuple[int, int]]):
 def test_default_battle(plot_hp_logs: bool = True):
     """Test default builds and optionally plot HP logs."""
     # offense, balanced, tank = default_stats2()
-    offense, balanced, tank = stats_from_matrix(scale_factor=.6)
+    offense, balanced, tank = stats_from_matrix(scale_factor=1)
     
     print(f"Default builds are valid: {proper_strategy_names(offense, balanced, tank)}")
     

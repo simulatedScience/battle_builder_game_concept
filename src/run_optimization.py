@@ -12,6 +12,7 @@ def main():
     def_ranges = [(1, 10), (1, 10), (1, 10)]
     rev_ranges = [(-2, 2), (-2, 2), (-2, 2)]
     hp_ranges = [(6, 23), (6, 24), (6, 25)]
+    spd_ranges = [(0, 10), (0, 10), (0, 10)]   # added speed ranges
     
     # Get default builds to use as starting point
     initial_builds = default_stats()
@@ -34,6 +35,7 @@ def main():
         def_ranges,
         rev_ranges,
         hp_ranges,
+        spd_ranges,            # pass speed ranges
         maxiter=2000,
         popsize=75,
         workers=-1,
