@@ -5,3 +5,6 @@
 *.gif
 *.drawio.bkp
 **.pyc
+!assets/
+!assets/icons/
+!assets/icons/*.png
